@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
 import { TextAnalysisService } from './services/textAnalysis';
 import GraphVisualization from './components/GraphVisualization';
-import { ClusterGraphVisualization } from './components/ClusterGraphVisualization';
 import { GraphData } from './types/graph';
 import { LLMLog } from './components/LLMLog';
 
@@ -15,8 +14,8 @@ function App() {
   const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [visualizationMode, setVisualizationMode] = useState<'standard' | 'cluster'>('standard');
   const [llmLogs, setLlmLogs] = useState<string[]>([]);
+  const [isFiltering, setIsFiltering] = useState(false);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setText(e.target.value);
@@ -24,10 +23,6 @@ function App() {
 
   const handleAnalysisTypeChange = (value: string) => {
     setAnalysisType(value);
-  };
-
-  const handleVisualizationModeChange = (value: string) => {
-    setVisualizationMode(value as 'standard' | 'cluster');
   };
 
   const handleAnalyze = async () => {
@@ -75,6 +70,32 @@ function App() {
     }
   };
 
+  const handleFilterChange = async (minWeight: number) => {
+    if (!graphData) return;
+    
+    try {
+      setIsFiltering(true);
+      const response = await fetch('http://localhost:5000/api/filter-edges', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ min_weight: minWeight }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to filter edges');
+      }
+
+      const filteredData = await response.json();
+      setGraphData(filteredData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred while filtering');
+    } finally {
+      setIsFiltering(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-4 md:p-8">
       <div className="max-w-full mx-auto space-y-8">
@@ -87,8 +108,8 @@ function App() {
           </p>
         </div>
 
-        <div className="flex gap-8">
-          <div className="flex-1 space-y-8">
+        <div className="flex gap-8 h-[calc(100vh-200px)]">
+          <div className="flex-1 min-w-0 space-y-8 overflow-y-auto">
             {/* Input Section */}
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
@@ -133,50 +154,37 @@ function App() {
             {/* Visualization Section */}
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle>Knowledge Graph</CardTitle>
-                    <CardDescription>
-                      Interactive visualization of the text analysis results
-                    </CardDescription>
-                  </div>
-                  <Select value={visualizationMode} onValueChange={handleVisualizationModeChange}>
-                    <SelectTrigger className="w-48 bg-gray-700 border-gray-600 text-white">
-                      <SelectValue placeholder="Select visualization mode" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700">
-                      <SelectItem value="standard">Standard View</SelectItem>
-                      <SelectItem value="cluster">Cluster View</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <CardTitle>Knowledge Graph</CardTitle>
+                <CardDescription>
+                  Interactive visualization of the text analysis results
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[600px] border rounded-md bg-white">
+                <div className="h-[500px] border rounded-md bg-white">
                   {graphData && (
-                    visualizationMode === 'standard' ? (
-                      <GraphVisualization data={{
+                    <GraphVisualization 
+                      data={{
                         ...graphData,
                         metrics: {
                           node_count: graphData.nodes.length,
-                          density: 0, // These should be calculated by your graph analysis service
+                          density: 0,
                           average_clustering: 0,
                           average_degree: 0,
                           connected_components: 0,
                           largest_component_ratio: 0
                         }
-                      }} />
-                    ) : (
-                      <ClusterGraphVisualization data={graphData} />
-                    )
+                      }}
+                      onFilterChange={handleFilterChange}
+                      isFiltering={isFiltering}
+                    />
                   )}
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* LLM Log Section */}
-          <div className="w-96">
+          {/* LLM Log Section - Fixed width */}
+          <div className="w-96 shrink-0">
             <LLMLog logs={llmLogs} isLoading={isAnalyzing} />
           </div>
         </div>
