@@ -119,43 +119,20 @@ export class TextAnalysisService {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(
-          errorData?.message || 
-          `Failed to generate knowledge graph: ${response.status} ${response.statusText}`
-        );
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Semantic analysis error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData.error,
+          traceback: errorData.traceback
+        });
+        throw new Error(`Semantic analysis failed: ${response.status} ${response.statusText}\n${errorData.error || ''}`);
       }
 
-      const data = await response.json();
-      
-      // Validate response data structure
-      if (!Array.isArray(data.nodes) || !Array.isArray(data.edges)) {
-        throw new Error('Invalid response format from knowledge graph API');
-      }
-
-      return {
-        nodes: data.nodes.map((node: { id: string; label: string }) => ({
-          id: node.id,
-          label: node.label,
-          size: 1.5,  // Slightly larger default size
-          color: '#2563eb',  // Default blue color
-        })),
-        edges: data.edges.map((edge: { source: string; target: string; label: string }) => ({
-          source: edge.source,
-          target: edge.target,
-          label: edge.label,
-          weight: 1,
-        })),
-        links: data.edges.map((edge: { source: string; target: string; label: string }) => ({
-          source: edge.source,
-          target: edge.target,
-          label: edge.label,
-          weight: 1,
-        }))
-      };
+      return await response.json();
     } catch (error) {
-      console.error('Error generating knowledge graph:', error);
-      throw error; // Re-throw to let the component handle the error
+      console.error('Error in semantic analysis:', error);
+      throw error;
     }
   }
 
