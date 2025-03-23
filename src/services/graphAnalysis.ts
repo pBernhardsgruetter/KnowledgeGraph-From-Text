@@ -89,10 +89,34 @@ export class GraphAnalysisService {
    * Calculate all metrics for the graph
    */
   public calculateNetworkMetrics(nodes: Node[], edges: Edge[]): NetworkMetrics {
+    // Calculate centrality
+    const centrality: { [key: string]: number } = {};
+    nodes.forEach(node => {
+      const connectedEdges = edges.filter(edge => 
+        (typeof edge.source === 'string' ? edge.source : edge.source.id) === node.id ||
+        (typeof edge.target === 'string' ? edge.target : edge.target.id) === node.id
+      );
+      centrality[node.id] = connectedEdges.length / (nodes.length - 1);
+    });
+
+    // Calculate density
+    const density = (2 * edges.length) / (nodes.length * (nodes.length - 1));
+
+    // Calculate average centrality
+    const averageCentrality = Object.values(centrality).reduce((a, b) => a + b, 0) / nodes.length;
+
+    // Calculate additional metrics
+    const modularity = this.calculateModularity(nodes, edges);
+    const influenceDistribution = this.calculateInfluence(nodes, edges);
+    const structureType = this.determineStructureType(nodes, edges);
+
     return {
-      modularity: this.calculateModularity(nodes, edges),
-      influenceDistribution: this.calculateInfluence(nodes, edges),
-      structureType: this.determineStructureType(nodes, edges)
+      density,
+      averageCentrality,
+      centrality,
+      modularity,
+      influenceDistribution,
+      structureType
     };
   }
 
@@ -110,17 +134,30 @@ export class GraphAnalysisService {
   /**
    * Process graph data with all enhancements
    */
-  public processGraph(graphData: GraphData): {
-    enhancedData: GraphData;
-    metrics: NetworkMetrics;
-  } {
-    const enhancedNodes = this.enhanceNodes(graphData.nodes, graphData.edges);
-    const metrics = this.calculateNetworkMetrics(graphData.nodes, graphData.edges);
+  public processGraph(data: GraphData): { enhancedData: GraphData; metrics: NetworkMetrics } {
+    const nodes = data.nodes;
+    const edges = data.edges;
+
+    // Calculate network metrics
+    const metrics = this.calculateNetworkMetrics(nodes, edges);
+
+    // Enhance nodes with metrics
+    const enhancedNodes = nodes.map(node => ({
+      ...node,
+      centrality: metrics.centrality[node.id] || 0
+    }));
 
     return {
       enhancedData: {
         nodes: enhancedNodes,
-        edges: graphData.edges
+        edges: edges,
+        links: edges.map(edge => ({
+          source: edge.source,
+          target: edge.target,
+          weight: edge.weight,
+          label: edge.label,
+          id: edge.id
+        }))
       },
       metrics
     };

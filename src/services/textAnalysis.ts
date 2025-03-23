@@ -13,6 +13,8 @@ interface RawEdge {
   label?: string;
 }
 
+type LogCallback = (message: string) => void;
+
 const defaultOptions: TextAnalysisOptions = {
   minWordLength: 3,
   maxWords: 100,
@@ -22,6 +24,7 @@ const defaultOptions: TextAnalysisOptions = {
 export class TextAnalysisService {
   private static instance: TextAnalysisService;
   private options: TextAnalysisOptions;
+  private logCallback?: LogCallback;
 
   private constructor(options: TextAnalysisOptions = {}) {
     this.options = { ...defaultOptions, ...options };
@@ -34,8 +37,19 @@ export class TextAnalysisService {
     return TextAnalysisService.instance;
   }
 
+  public setLogCallback(callback: LogCallback) {
+    this.logCallback = callback;
+  }
+
+  private log(message: string) {
+    if (this.logCallback) {
+      this.logCallback(message);
+    }
+  }
+
   private preprocessText(text: string): string[] {
-    return text
+    this.log('Preprocessing text...');
+    const words = text
       .toLowerCase()
       .replace(/[^\w\s]/g, '')
       .split(/\s+/)
@@ -43,9 +57,12 @@ export class TextAnalysisService {
         word.length >= this.options.minWordLength! && 
         !this.options.stopWords!.includes(word)
       );
+    this.log(`Found ${words.length} valid words after preprocessing`);
+    return words;
   }
 
   private createGraphData(nodes: string[], edges: RawEdge[]): GraphData {
+    this.log(`Creating graph with ${nodes.length} nodes and ${edges.length} edges`);
     return {
       nodes: nodes.map(node => ({
         id: node,
@@ -69,16 +86,17 @@ export class TextAnalysisService {
   }
 
   public analyzeCoOccurrence(text: string): GraphData {
+    this.log('Starting co-occurrence analysis...');
     const words = this.preprocessText(text);
     const wordFreq = new Map<string, number>();
     const coOccurrence = new Map<string, Map<string, number>>();
 
-    // Count word frequencies
+    this.log('Calculating word frequencies...');
     words.forEach(word => {
       wordFreq.set(word, (wordFreq.get(word) || 0) + 1);
     });
 
-    // Create co-occurrence matrix
+    this.log('Building co-occurrence matrix...');
     for (let i = 0; i < words.length - 1; i++) {
       const word1 = words[i];
       const word2 = words[i + 1];
@@ -94,7 +112,7 @@ export class TextAnalysisService {
       coOccurrence.get(word2)!.set(word1, (coOccurrence.get(word2)!.get(word1) || 0) + 1);
     }
 
-    // Convert to graph data
+    this.log('Generating graph data...');
     const nodes = Array.from(wordFreq.keys());
     const edges: RawEdge[] = [];
 
@@ -110,7 +128,9 @@ export class TextAnalysisService {
   }
 
   public async analyzeSemantic(text: string): Promise<GraphData> {
+    this.log('Initializing semantic analysis...');
     try {
+      this.log('Sending request to semantic analysis service...');
       const response = await fetch('http://localhost:5000/api/generate-graph', {
         method: 'POST',
         headers: {
@@ -130,14 +150,17 @@ export class TextAnalysisService {
         throw new Error(`Semantic analysis failed: ${response.status} ${response.statusText}\n${errorData.error || ''}`);
       }
 
+      this.log('Processing semantic analysis results...');
       return await response.json();
     } catch (error) {
+      this.log('Error occurred during semantic analysis');
       console.error('Error in semantic analysis:', error);
       throw error;
     }
   }
 
   public analyzeTopic(text: string): GraphData {
+    this.log('Starting topic analysis...');
     // TODO: Implement topic modeling
     // This is a placeholder that uses co-occurrence analysis
     return this.analyzeCoOccurrence(text);

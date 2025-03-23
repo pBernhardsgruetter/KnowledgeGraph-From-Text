@@ -26,6 +26,7 @@ export interface Edge {
 export interface GraphData {
   nodes: Node[];
   edges: Edge[];
+  links?: Edge[];
 }
 
 export interface ProcessedGraphData {
@@ -40,6 +41,9 @@ export interface ProcessedGraphData {
 }
 
 export interface NetworkMetrics {
+  density: number;
+  averageCentrality: number;
+  centrality: { [key: string]: number };
   modularity: number;
   influenceDistribution: number;
   structureType: 'Biased' | 'Balanced' | 'Dispersed';
