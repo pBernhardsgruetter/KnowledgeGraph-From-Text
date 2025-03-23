@@ -1,9 +1,46 @@
 import pytest
-from services.text_processor import TextProcessor
+from ..text_processor import TextProcessor
 
 @pytest.fixture
-def processor():
-    return TextProcessor(window_size=3)
+def text_processor():
+    return TextProcessor()
+
+def test_lemmatization():
+    processor = TextProcessor()
+    text = "running quickly through forests"
+    processed = processor.lemmatize(text)
+    assert "run" in processed
+    assert "quick" in processed
+    assert "forest" in processed
+
+def test_stopword_removal():
+    processor = TextProcessor()
+    text = "this is a test sentence with stopwords"
+    processed = processor.remove_stopwords(text)
+    common_stopwords = {"this", "is", "a", "with"}
+    for word in processed.split():
+        assert word not in common_stopwords
+
+def test_ngram_window():
+    processor = TextProcessor()
+    text = "the quick brown fox jumps"
+    window_size = 2
+    ngrams = processor.get_ngram_windows(text, window_size)
+    assert ("quick", "brown") in ngrams
+    assert ("brown", "fox") in ngrams
+    assert ("fox", "jumps") in ngrams
+
+def test_empty_text():
+    processor = TextProcessor()
+    assert processor.process("") == ""
+    assert processor.lemmatize("") == ""
+    assert processor.remove_stopwords("") == ""
+
+def test_special_characters():
+    processor = TextProcessor()
+    text = "Hello! This is a test... With some special-characters."
+    processed = processor.process(text)
+    assert all(char.isalnum() or char.isspace() for char in processed)
 
 def test_preprocess_text(processor):
     text = "The quick brown fox jumps over the lazy dog!"
@@ -36,13 +73,6 @@ def test_process_complete(processor):
     assert "cooccurrences" in result
     assert len(result["tokens"]) > 0
     assert len(result["cooccurrences"]) > 0
-
-def test_empty_text(processor):
-    text = ""
-    result = processor.process(text)
-    
-    assert len(result["tokens"]) == 0
-    assert len(result["cooccurrences"]) == 0
 
 def test_single_word(processor):
     text = "hello"

@@ -163,17 +163,7 @@ function App() {
                 <div className="h-[500px] border rounded-md bg-white">
                   {graphData && (
                     <GraphVisualization 
-                      data={{
-                        ...graphData,
-                        metrics: {
-                          node_count: graphData.nodes.length,
-                          density: 0,
-                          average_clustering: 0,
-                          average_degree: 0,
-                          connected_components: 0,
-                          largest_component_ratio: 0
-                        }
-                      }}
+                      data={graphData}
                       onFilterChange={handleFilterChange}
                       isFiltering={isFiltering}
                     />

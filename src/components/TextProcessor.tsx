@@ -153,17 +153,7 @@ const TextProcessor: React.FC = () => {
         <div>
           {result?.graph && (
             <GraphVisualization
-              data={{
-                ...result.graph,
-                metrics: {
-                  node_count: result.graph.nodes.length,
-                  density: 0,
-                  average_clustering: 0,
-                  average_degree: 0,
-                  connected_components: 0,
-                  largest_component_ratio: 0
-                }
-              }}
+              data={result.graph}
               onFilterChange={handleFilterChange}
             />
           )}
