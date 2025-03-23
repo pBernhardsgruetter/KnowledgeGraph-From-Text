@@ -1,6 +1,9 @@
-flask==3.0.2
-flask-cors==4.0.0
-kg-gen>=0.1.0
-python-dotenv==1.0.1
-werkzeug>=3.0.0
-google-generativeai==0.3.2 
+flask>=2.0.0
+flask-cors>=3.0.0
+python-dotenv>=0.19.0
+spacy>=3.5.0
+scikit-learn>=1.0.0
+numpy>=1.21.0
+google-cloud-aiplatform>=1.25.0
+google-generativeai>=0.3.0
+python-multipart>=0.0.5 

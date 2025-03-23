@@ -1,14 +1,18 @@
 export interface Node {
   id: string;
   label: string;
-  size?: number;
-  color?: string;
+  summary?: string;
+  keyTerms: string[];
   x?: number;
   y?: number;
   vx?: number;
   vy?: number;
+  index?: number;
+  weight?: number;
   centrality?: number;
   group?: string;
+  size?: number;
+  color?: string;
 }
 
 export interface Edge {
@@ -16,12 +20,23 @@ export interface Edge {
   target: string | Node;
   label?: string;
   weight?: number;
+  id?: string;
 }
 
 export interface GraphData {
   nodes: Node[];
   edges: Edge[];
-  links?: Edge[];  // For compatibility with ForceGraph2D
+}
+
+export interface ProcessedGraphData {
+  nodes: (Node | ClusterNode)[];
+  links: {
+    source: Node;
+    target: Node;
+    label?: string;
+    weight?: number;
+    id?: string;
+  }[];
 }
 
 export interface NetworkMetrics {
@@ -34,9 +49,9 @@ export interface ClusterNode extends Node {
   isCluster: boolean;
   clusterNodes: Node[];
   clusterEdges: Edge[];
-  summary: string;
-  keyTerms: string[];
-  level: number;
+  level?: number;
+  children?: ClusterNode[];
+  color?: string;
 }
 
 export interface ClusterEdge extends Omit<Edge, 'source' | 'target'> {

@@ -93,8 +93,8 @@ export const GraphVisualization: React.FC<GraphVisualizationProps> = ({
         nodeLabel="label"
         linkLabel="label"
         nodeRelSize={6}
-        nodeVal={(node: NodeObject) => (node as Node).size || 1}
-        nodeColor={(node: NodeObject) => (node as Node).color || '#2563eb'}
+        nodeVal={(node: NodeObject) => ((node as Node).size ?? 1)}
+        nodeColor={(node: NodeObject) => ((node as Node).color ?? '#2563eb')}
         linkColor={() => '#9ca3af'}
         linkDirectionalParticles={2}
         linkDirectionalParticleWidth={2}
@@ -103,14 +103,14 @@ export const GraphVisualization: React.FC<GraphVisualizationProps> = ({
         d3VelocityDecay={0.08}
         cooldownTicks={100}
         onNodeClick={handleNodeClick}
-        nodeCanvasObject={(node: NodeObject, ctx: CanvasRenderingContext2D, globalScale: number) => {
+        nodeCanvasObject={(node, ctx, globalScale) => {
           const typedNode = node as Node;
           const label = typedNode.label;
           const fontSize = 14 / globalScale;
-          const size = ((typedNode.size || 1) * 5) / globalScale;
+          const size = ((typedNode.size ?? 1) * 5) / globalScale;
           
           ctx.font = `${fontSize}px Inter, system-ui, sans-serif`;
-          ctx.fillStyle = typedNode.color || '#2563eb';
+          ctx.fillStyle = typedNode.color ?? '#2563eb';
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           

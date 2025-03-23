@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from kg_gen import KGGen
+from text_processor import TextProcessor
 import os
 from dotenv import load_dotenv
 import json
@@ -48,10 +49,13 @@ if not api_key:
     raise ValueError("GOOGLE_API_KEY environment variable is not set")
 
 kg = KGGen(
-    model="models/gemini-2.0-flash",  # Using Gemini Flash model
+    model="models/gemini-2.0-flash",
     temperature=0.0,
-    api_key=api_key  # Using Google API key instead of OpenAI
+    api_key=api_key
 )
+
+# Initialize TextProcessor
+text_processor = TextProcessor()
 
 @app.route('/api/generate-graph', methods=['POST'])
 @rate_limit
@@ -65,10 +69,21 @@ def generate_graph():
         text = data.get('text', '')
         if not text:
             return jsonify({'error': 'Text is required'}), 400
+        
+        # Preprocess text before generating graph
+        processed_tokens = text_processor.process_for_topic_modeling(text)
+        processed_text = ' '.join(processed_tokens)
             
         # Generate the knowledge graph
         try:
-            result = kg.generate(text)
+            result = kg.generate(processed_text)
+            
+            # Extract key terms for each node
+            for node in result['nodes']:
+                if 'label' in node:
+                    terms = text_processor.extract_key_terms(node['label'], max_terms=5)
+                    node['keyTerms'] = [term['term'] for term in terms]
+                    
             return jsonify(result)
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
@@ -91,15 +106,18 @@ def analyze_clusters():
         if not data or 'nodes' not in data or 'edges' not in data:
             return jsonify({'error': 'Graph data is required'}), 400
 
-        # Limit the number of nodes and edges to prevent too large responses
+        # Process nodes to extract key terms
+        for node in data['nodes']:
+            if 'label' in node and not node.get('keyTerms'):
+                terms = text_processor.extract_key_terms(node['label'], max_terms=5)
+                node['keyTerms'] = [term['term'] for term in terms]
+
+        # Limit the number of nodes and edges
         max_nodes = 50
         max_edges = 100
-        
-        # Take only the first max_nodes nodes and max_edges edges
         nodes = data['nodes'][:max_nodes]
         edges = data['edges'][:max_edges]
         
-        # Construct a more concise prompt
         prompt = f"""Analyze this knowledge graph and identify 2-3 meaningful clusters of related concepts.
         Keep the response concise and focused on the most important relationships.
         
@@ -124,44 +142,25 @@ def analyze_clusters():
         }}
         """
 
-        # Generate response using the LLM
         try:
             response = kg.model.generate_content(
                 prompt,
                 generation_config={
                     "temperature": 0.2,
-                    "max_output_tokens": 1000  # Limit response size
+                    "max_output_tokens": 1000
                 }
             )
-        except Exception as e:
-            logger.error(f"Error calling Gemini API: {str(e)}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            return jsonify({
-                'error': f'Failed to analyze clusters: {str(e)}',
-                'traceback': traceback.format_exc()
-            }), 500
-
-        try:
-            # Extract and parse the JSON response
-            result = response.text.strip()
             
-            # Clean up the response if it contains markdown code blocks
+            result = response.text.strip()
             if result.startswith('```json'):
                 result = result[7:]
             if result.startswith('```'):
                 result = result[3:]
             if result.endswith('```'):
                 result = result[:-3]
-            
-            # Remove any leading/trailing whitespace
             result = result.strip()
             
-            # Log the cleaned response for debugging
-            logger.debug(f"Cleaned response: {result}")
-            
             cluster_data = json.loads(result)
-            
-            # Validate the response format
             if not isinstance(cluster_data, dict) or 'clusters' not in cluster_data:
                 raise ValueError("Invalid cluster analysis response format")
                 
@@ -170,9 +169,7 @@ def analyze_clusters():
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse cluster analysis response: {str(e)}")
             logger.error(f"Raw response: {result}")
-            # Try to extract JSON-like content if the response is malformed
             try:
-                # Look for content between curly braces
                 start = result.find('{')
                 end = result.rfind('}') + 1
                 if start >= 0 and end > start:
@@ -203,72 +200,61 @@ def expand_cluster():
         cluster_id = data['clusterId']
         graph_data = data['graphData']
 
-        # Construct the prompt for cluster expansion
-        prompt = f"""Analyze the following cluster in detail and provide a more granular view of its internal structure.
-        Return the result as a JSON object with:
-        - nodes: array of detailed nodes within the cluster
-        - edges: array of detailed edges within the cluster
-        - subclusters: array of smaller clusters (if any)
-
-        Cluster ID: {cluster_id}
-        Graph data: {graph_data}
-
-        Response format:
+        prompt = f"""Given this cluster from a knowledge graph, expand it into more detailed nodes and edges.
+        Return ONLY a JSON object with the expanded nodes and edges in this exact format:
         {{
             "nodes": [
-                {{"id": "subnode1", "label": "Detailed Concept 1", "details": "Additional information"}},
-                ...
+                {{"id": "detail1", "label": "Detailed Concept 1"}},
+                {{"id": "detail2", "label": "Detailed Concept 2"}}
             ],
             "edges": [
-                {{"source": "subnode1", "target": "subnode2", "label": "detailed relationship"}},
-                ...
-            ],
-            "subclusters": [
-                {{
-                    "id": "subcluster1",
-                    "label": "Subtheme",
-                    "nodes": ["subnode1", "subnode2"],
-                    "summary": "Detailed description"
-                }},
-                ...
+                {{"source": "detail1", "target": "detail2", "label": "detailed relationship"}}
             ]
         }}
+
+        Cluster ID: {cluster_id}
+        Original graph: {json.dumps(graph_data)}
         """
 
-        # Generate response using the LLM
         try:
             response = kg.model.generate_content(
                 prompt,
-                generation_config={"temperature": 0.2}
+                generation_config={
+                    "temperature": 0.2,
+                    "max_output_tokens": 1000
+                }
             )
+            
+            result = response.text.strip()
+            if result.startswith('```json'):
+                result = result[7:]
+            if result.startswith('```'):
+                result = result[3:]
+            if result.endswith('```'):
+                result = result[:-3]
+            result = result.strip()
+            
+            expanded_data = json.loads(result)
+            
+            # Process expanded nodes to extract key terms
+            if 'nodes' in expanded_data:
+                for node in expanded_data['nodes']:
+                    if 'label' in node:
+                        terms = text_processor.extract_key_terms(node['label'], max_terms=5)
+                        node['keyTerms'] = [term['term'] for term in terms]
+            
+            if not isinstance(expanded_data, dict) or 'nodes' not in expanded_data or 'edges' not in expanded_data:
+                raise ValueError("Invalid expansion response format")
+            
+            return jsonify(expanded_data)
+            
         except Exception as e:
-            logger.error(f"Error calling Gemini API: {str(e)}")
+            logger.error(f"Error expanding cluster: {str(e)}")
             logger.error(f"Traceback: {traceback.format_exc()}")
             return jsonify({
                 'error': f'Failed to expand cluster: {str(e)}',
                 'traceback': traceback.format_exc()
             }), 500
-
-        try:
-            # Extract and parse the JSON response
-            result = response.text
-            if result.startswith('```json\n'):
-                result = result[8:]
-            if result.endswith('\n```'):
-                result = result[:-4]
-            
-            expansion_data = json.loads(result)
-            
-            # Validate the response format
-            if not isinstance(expansion_data, dict):
-                raise ValueError("Invalid cluster expansion response format")
-                
-            return jsonify(expansion_data)
-            
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse cluster expansion response: {str(e)}")
-            logger.error(f"Raw response: {result}")
-            raise ValueError("Failed to parse cluster expansion response as JSON")
             
     except Exception as e:
         logger.error(f"Error in expand_cluster: {str(e)}")

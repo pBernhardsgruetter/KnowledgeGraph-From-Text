@@ -50,7 +50,8 @@ export class TextAnalysisService {
       nodes: nodes.map(node => ({
         id: node,
         label: node,
-        size: 1
+        size: 1,
+        keyTerms: [node]
       })),
       edges: edges.map(edge => ({
         source: edge.source,
