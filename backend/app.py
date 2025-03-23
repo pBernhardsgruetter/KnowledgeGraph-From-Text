@@ -50,7 +50,7 @@ if not api_key:
     raise ValueError("GOOGLE_API_KEY environment variable is not set")
 
 kg = KGGen(
-    model="models/gemini-2.0-flash",
+    model="gemini/gemini-2.0-flash",
     temperature=0.0,
     api_key=api_key
 )
@@ -135,17 +135,46 @@ def generate_graph():
         processed_tokens = text_processor.process_for_topic_modeling(text)
         processed_text = ' '.join(processed_tokens)
             
-        # Generate the knowledge graph
+        # Generate the knowledge graph using KG-Gen
         try:
-            result = kg.generate(processed_text)
+            kg_result = kg.generate(
+                input_data=processed_text,
+                context="Extract key concepts and relationships"
+            )
             
-            # Extract key terms for each node
-            for node in result['nodes']:
-                if 'label' in node:
-                    terms = text_processor.extract_key_terms(node['label'], max_terms=5)
-                    node['keyTerms'] = [term['term'] for term in terms]
+            # Convert KG-Gen output to our graph format
+            nodes = []
+            edges = []
+            
+            # Create nodes from entities
+            # KG-Gen returns a set of entities
+            for entity in kg_result.entities:
+                node = {
+                    'id': entity,
+                    'label': entity,
+                    'keyTerms': [term['term'] for term in text_processor.extract_key_terms(entity, max_terms=5)]
+                }
+                nodes.append(node)
+            
+            # Create edges from relations
+            # KG-Gen returns a set of (source, relation_type, target) tuples
+            for i, relation in enumerate(kg_result.relations):
+                source, relation_type, target = relation
+                edge = {
+                    'id': f'e{i}',
+                    'source': source,
+                    'target': target,
+                    'label': relation_type
+                }
+                edges.append(edge)
+            
+            result = {
+                'nodes': nodes,
+                'edges': edges
+            }
                     
             return jsonify(result)
+            
         except ValueError as e:
             return jsonify({'error': str(e)}), 400
         except Exception as e:
@@ -179,67 +208,34 @@ def analyze_clusters():
         nodes = data['nodes'][:max_nodes]
         edges = data['edges'][:max_edges]
         
-        prompt = f"""Analyze this knowledge graph and identify 2-3 meaningful clusters of related concepts.
-        Keep the response concise and focused on the most important relationships.
-        
-        Graph data:
-        Nodes: {json.dumps(nodes)}
-        Edges: {json.dumps(edges)}
-
-        Return ONLY a JSON object in this exact format:
-        {{
-            "clusters": [
-                {{
-                    "id": "1",
-                    "label": "Main Theme",
-                    "nodes": ["node1", "node2"],
-                    "edges": ["edge1", "edge2"],
-                    "summary": "Brief theme description",
-                    "keyTerms": ["term1", "term2"],
-                    "level": 0,
-                    "color": "#4f46e5"
-                }}
-            ]
-        }}
-        """
-
+        # Generate the cluster analysis using KGGen
         try:
-            response = kg.model.generate_content(
-                prompt,
-                generation_config={
-                    "temperature": 0.2,
-                    "max_output_tokens": 1000
-                }
+            cluster_result = kg.generate(
+                input_data=json.dumps({"nodes": nodes, "edges": edges}),
+                context="Analyze this graph data and identify 2-3 meaningful clusters of related concepts"
             )
             
-            result = response.text.strip()
-            if result.startswith('```json'):
-                result = result[7:]
-            if result.startswith('```'):
-                result = result[3:]
-            if result.endswith('```'):
-                result = result[:-3]
-            result = result.strip()
+            # Convert to expected cluster format
+            clusters = []
+            for i, (entity, relations) in enumerate(zip(cluster_result.get('entities', []), cluster_result.get('relations', []))):
+                cluster = {
+                    "id": str(i + 1),
+                    "label": entity,
+                    "nodes": [r[0] for r in relations if r[0] in [n['id'] for n in nodes]],
+                    "edges": [e['id'] for e in edges if e['source'] in cluster['nodes'] and e['target'] in cluster['nodes']],
+                    "summary": f"Cluster of concepts related to {entity}",
+                    "keyTerms": [r[2] for r in relations if isinstance(r[2], str)][:5],
+                    "level": 0,
+                    "color": "#4f46e5"
+                }
+                clusters.append(cluster)
             
-            cluster_data = json.loads(result)
-            if not isinstance(cluster_data, dict) or 'clusters' not in cluster_data:
-                raise ValueError("Invalid cluster analysis response format")
-                
-            return jsonify(cluster_data)
+            return jsonify({"clusters": clusters})
             
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse cluster analysis response: {str(e)}")
-            logger.error(f"Raw response: {result}")
-            try:
-                start = result.find('{')
-                end = result.rfind('}') + 1
-                if start >= 0 and end > start:
-                    json_str = result[start:end]
-                    cluster_data = json.loads(json_str)
-                    return jsonify(cluster_data)
-            except:
-                pass
-            raise ValueError("Failed to parse cluster analysis response as JSON")
+        except Exception as e:
+            logger.error(f"Error in cluster analysis: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            return jsonify({'error': str(e)}), 500
             
     except Exception as e:
         logger.error(f"Error in analyze_clusters: {str(e)}")

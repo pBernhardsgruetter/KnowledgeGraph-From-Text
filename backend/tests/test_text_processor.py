@@ -1,5 +1,5 @@
 import pytest
-from ..text_processor import TextProcessor
+from text_processor import TextProcessor
 
 @pytest.fixture
 def text_processor():
@@ -42,9 +42,9 @@ def test_special_characters():
     processed = processor.process(text)
     assert all(char.isalnum() or char.isspace() for char in processed)
 
-def test_preprocess_text(processor):
+def test_preprocess_text(text_processor):
     text = "The quick brown fox jumps over the lazy dog!"
-    tokens = processor.preprocess_text(text)
+    tokens = text_processor.preprocess_text(text)
     
     # Check if stopwords are removed
     assert "the" not in tokens
@@ -55,9 +55,9 @@ def test_preprocess_text(processor):
     # Check if case is normalized
     assert all(t.islower() for t in tokens)
 
-def test_extract_ngrams(processor):
+def test_extract_ngrams(text_processor):
     tokens = ["quick", "brown", "fox", "jump", "lazy", "dog"]
-    cooccurrences = processor.extract_ngrams(tokens)
+    cooccurrences = text_processor.extract_ngrams(tokens)
     
     # Check if co-occurrences are captured within window
     assert ("brown", "fox") in cooccurrences
@@ -65,18 +65,18 @@ def test_extract_ngrams(processor):
     # Check if distant words are not connected
     assert ("quick", "dog") not in cooccurrences
 
-def test_process_complete(processor):
+def test_process_complete(text_processor):
     text = "The quick brown fox jumps over the lazy dog!"
-    result = processor.process(text)
+    result = text_processor.process(text)
     
     assert "tokens" in result
     assert "cooccurrences" in result
     assert len(result["tokens"]) > 0
     assert len(result["cooccurrences"]) > 0
 
-def test_single_word(processor):
+def test_single_word(text_processor):
     text = "hello"
-    result = processor.process(text)
+    result = text_processor.process(text)
     
     assert len(result["tokens"]) == 1
     assert len(result["cooccurrences"]) == 0 

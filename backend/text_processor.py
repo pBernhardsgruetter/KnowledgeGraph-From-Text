@@ -1,11 +1,11 @@
 import spacy
-from typing import List, Dict
+from typing import List, Dict, Set, Tuple, Any
 from collections import Counter
 from sklearn.feature_extraction.text import TfidfVectorizer
 import numpy as np
 
 class TextProcessor:
-    def __init__(self):
+    def __init__(self, window_size=4):
         # Load English language model with word vectors
         self.nlp = spacy.load('en_core_web_md')
         
@@ -20,11 +20,34 @@ class TextProcessor:
             'needed', 'like', 'want', 'wants', 'wanted'
         }
         self.stop_words.update(self.technical_stop_words)
+        self.window_size = window_size
+
+    def lemmatize(self, text: str) -> str:
+        """Lemmatize text using spaCy."""
+        if not text:
+            return ""
+        doc = self.nlp(text)
+        return " ".join([token.lemma_ for token in doc])
+
+    def remove_stopwords(self, text: str) -> str:
+        """Remove stopwords from text."""
+        if not text:
+            return ""
+        doc = self.nlp(text)
+        return " ".join([token.text for token in doc if token.text.lower() not in self.stop_words])
+
+    def get_ngram_windows(self, text: str, window_size: int) -> Set[Tuple[str, str]]:
+        """Get n-gram windows from text."""
+        doc = self.nlp(text)
+        tokens = [token.text for token in doc if not token.is_punct and not token.is_space]
+        ngrams = set()
+        for i in range(len(tokens) - 1):
+            for j in range(i + 1, min(i + window_size + 1, len(tokens))):
+                ngrams.add((tokens[i], tokens[j]))
+        return ngrams
 
     def preprocess_text(self, text: str) -> List[str]:
-        """
-        Preprocess text using spaCy's advanced NLP features
-        """
+        """Preprocess text using spaCy's advanced NLP features."""
         doc = self.nlp(text)
         tokens = []
         for token in doc:
@@ -39,6 +62,34 @@ class TextProcessor:
                 else:
                     tokens.append(token.text.lower())
         return tokens
+
+    def extract_ngrams(self, tokens: List[str]) -> Set[Tuple[str, str]]:
+        """Extract n-grams and their co-occurrence counts."""
+        cooccurrences = set()
+        for i in range(len(tokens) - 1):
+            for j in range(i + 1, min(i + self.window_size + 1, len(tokens))):
+                cooccurrences.add((tokens[i], tokens[j]))
+        return cooccurrences
+
+    def process(self, text: str, window_size: int = 2) -> Dict[str, Any]:
+        """Process text and extract co-occurrences"""
+        # Preprocess text
+        tokens = self.preprocess_text(text)
+        
+        # Extract co-occurrences
+        cooccurrences = {}
+        for i in range(len(tokens)):
+            for j in range(max(0, i - window_size), min(len(tokens), i + window_size + 1)):
+                if i != j:
+                    # Sort tokens to ensure consistent key ordering
+                    pair = tuple(sorted([tokens[i], tokens[j]]))
+                    key = f"{pair[0]}_{pair[1]}"
+                    cooccurrences[key] = cooccurrences.get(key, 0) + 1
+
+        return {
+            "tokens": tokens,
+            "cooccurrences": cooccurrences
+        }
 
     def extract_key_terms(self, text: str, max_terms: int = 10) -> List[Dict[str, float]]:
         """
