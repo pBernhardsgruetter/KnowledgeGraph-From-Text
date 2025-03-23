@@ -13,6 +13,8 @@ export interface Node {
   group?: string;
   size?: number;
   color?: string;
+  degree?: number;
+  betweenness?: number;
 }
 
 export interface Edge {
@@ -23,10 +25,20 @@ export interface Edge {
   id?: string;
 }
 
+export interface GraphMetrics {
+  node_count: number;
+  density: number;
+  average_clustering: number;
+  average_degree: number;
+  connected_components: number;
+  largest_component_ratio: number;
+}
+
 export interface GraphData {
   nodes: Node[];
   edges: Edge[];
   links?: Edge[];
+  metrics?: GraphMetrics;
 }
 
 export interface ProcessedGraphData {

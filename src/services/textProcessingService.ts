@@ -6,6 +6,20 @@ interface TextProcessingRequest {
 interface TextProcessingResponse {
   tokens: string[];
   cooccurrences: Record<string, number>;
+  graph: {
+    nodes: Array<{
+      id: string;
+      label: string;
+      degree: number;
+    }>;
+    edges: Array<{
+      source: string;
+      target: string;
+      weight: number;
+      log_weight: number;
+      raw_count: number;
+    }>;
+  };
 }
 
 export const processText = async (

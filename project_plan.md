@@ -26,22 +26,22 @@ This project plan outlines the implementation of missing features for InsightGra
 - [x] Add logging and error handling
 
 #### Story 1.1.2: Edge Weight System
-- [ ] Design edge weight calculation algorithm
-- [ ] Implement proximity-based weight calculation
-- [ ] Add weight normalization
-- [ ] Create weight visualization system
-- [ ] Update graph rendering to show weights
-- [ ] Add weight filtering options
-- [ ] Write tests for weight calculations
+- [x] Design edge weight calculation algorithm
+- [x] Implement proximity-based weight calculation
+- [x] Add weight normalization
+- [x] Create weight visualization system
+- [x] Update graph rendering to show weights
+- [x] Add weight filtering options
+- [x] Write tests for weight calculations
 
 #### Story 1.1.3: Graph Data Structure Enhancement
-- [ ] Implement betweenness centrality calculation
-- [ ] Add caching for centrality metrics
-- [ ] Create graph data validation
-- [ ] Optimize graph updates
-- [ ] Add graph statistics calculation
-- [ ] Write performance tests
-- [ ] Document graph data structure
+- [x] Implement betweenness centrality calculation
+- [x] Add caching for centrality metrics
+- [x] Create graph data validation
+- [x] Optimize graph updates
+- [x] Add graph statistics calculation
+- [x] Write performance tests
+- [x] Document graph data structure
 
 ### Epic 1.2: Structural Gap Detection
 **Status**: 🔴 Not Started  

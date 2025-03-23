@@ -4,7 +4,7 @@ import { Textarea } from './components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './components/ui/select';
 import { TextAnalysisService } from './services/textAnalysis';
-import { GraphVisualization } from './components/GraphVisualization';
+import GraphVisualization from './components/GraphVisualization';
 import { ClusterGraphVisualization } from './components/ClusterGraphVisualization';
 import { GraphData } from './types/graph';
 import { LLMLog } from './components/LLMLog';
@@ -155,7 +155,17 @@ function App() {
                 <div className="h-[600px] border rounded-md bg-white">
                   {graphData && (
                     visualizationMode === 'standard' ? (
-                      <GraphVisualization data={graphData} />
+                      <GraphVisualization data={{
+                        ...graphData,
+                        metrics: {
+                          node_count: graphData.nodes.length,
+                          density: 0, // These should be calculated by your graph analysis service
+                          average_clustering: 0,
+                          average_degree: 0,
+                          connected_components: 0,
+                          largest_component_ratio: 0
+                        }
+                      }} />
                     ) : (
                       <ClusterGraphVisualization data={graphData} />
                     )

@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from kg_gen import KGGen
 from text_processor import TextProcessor
+from services.graph_service import GraphService
 import os
 from dotenv import load_dotenv
 import json
@@ -42,7 +43,7 @@ def rate_limit(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Initialize KGGen with Gemini model
+# Initialize services
 api_key = os.getenv("GOOGLE_API_KEY")
 if not api_key:
     logger.error("GOOGLE_API_KEY environment variable is not set")
@@ -54,8 +55,68 @@ kg = KGGen(
     api_key=api_key
 )
 
-# Initialize TextProcessor
+# Initialize text processor and graph service
 text_processor = TextProcessor()
+graph_service = GraphService()
+
+@app.route('/api/process-text', methods=['POST'])
+@rate_limit
+def process_text():
+    """
+    Process input text and return tokens, co-occurrences, and graph data.
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'text' not in data:
+            return jsonify({'error': 'Text is required'}), 400
+            
+        text = data.get('text', '')
+        window_size = data.get('window_size', 4)
+        
+        if not text:
+            return jsonify({'error': 'Text is required'}), 400
+            
+        # Update window size if different from default
+        if window_size != text_processor.window_size:
+            text_processor.window_size = window_size
+            
+        # Process text
+        result = text_processor.process(text)
+        
+        # Build graph
+        graph_data = graph_service.build_graph(
+            tokens=result['tokens'],
+            cooccurrences=result['cooccurrences']
+        )
+        
+        return jsonify({
+            **result,
+            'graph': graph_data
+        })
+        
+    except Exception as e:
+        logger.error(f"Error processing text: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/filter-edges', methods=['POST'])
+@rate_limit
+def filter_edges():
+    """
+    Filter graph edges based on minimum weight threshold.
+    """
+    try:
+        data = request.get_json()
+        min_weight = data.get('min_weight', 0.0)
+        
+        filtered_data = graph_service.filter_edges_by_weight(min_weight)
+        return jsonify(filtered_data)
+        
+    except Exception as e:
+        logger.error(f"Error filtering edges: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/generate-graph', methods=['POST'])
 @rate_limit
