@@ -83,10 +83,23 @@ export const ClusteredForceLayout: React.FC<ClusteredForceLayoutProps> = ({
         ctx.arc(x, y, size, 0, 2 * Math.PI);
         ctx.fill();
 
-        // Node label
-        const fontSize = 12 / globalScale;
+        // Node label with background
+        const fontSize = isCluster ? 14 / globalScale : 12 / globalScale;
         ctx.font = `${fontSize}px Inter, system-ui, sans-serif`;
-        ctx.fillStyle = '#1f2937';
+        const textWidth = ctx.measureText(label).width;
+        const padding = 4 / globalScale;
+
+        // Draw label background
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillRect(
+          x - textWidth / 2 - padding,
+          y + size + fontSize / 2 - padding,
+          textWidth + padding * 2,
+          fontSize + padding * 2
+        );
+
+        // Draw label text
+        ctx.fillStyle = isCluster ? '#4338ca' : '#1f2937';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(label, x, y + size + fontSize);
@@ -100,6 +113,48 @@ export const ClusteredForceLayout: React.FC<ClusteredForceLayoutProps> = ({
         ctx.arc(x, y, size, 0, 2 * Math.PI);
         ctx.fillStyle = color;
         ctx.fill();
+      }}
+      linkCanvasObject={(link, ctx, globalScale) => {
+        const start = link.source as ForceGraphNode;
+        const end = link.target as ForceGraphNode;
+        if (!start.x || !start.y || !end.x || !end.y) return;
+
+        // Draw the link
+        ctx.strokeStyle = '#9ca3af';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(start.x, start.y);
+        ctx.lineTo(end.x, end.y);
+        ctx.stroke();
+
+        // Draw the label if it exists
+        if (link.label) {
+          const label = link.label as string;
+          const fontSize = 10 / globalScale;
+          ctx.font = `${fontSize}px Inter, system-ui, sans-serif`;
+          
+          // Calculate middle point of the link
+          const midX = (start.x + end.x) / 2;
+          const midY = (start.y + end.y) / 2;
+          
+          // Draw label background
+          const textWidth = ctx.measureText(label).width;
+          const padding = 3 / globalScale;
+          
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+          ctx.fillRect(
+            midX - textWidth / 2 - padding,
+            midY - fontSize / 2 - padding,
+            textWidth + padding * 2,
+            fontSize + padding * 2
+          );
+          
+          // Draw label text
+          ctx.fillStyle = '#4b5563';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(label, midX, midY);
+        }
       }}
     />
   );
