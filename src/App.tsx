@@ -97,13 +97,13 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 md:p-8">
+    <div className="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8">
       <div className="max-w-full mx-auto space-y-8">
         <div className="text-center">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 text-transparent bg-clip-text">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 text-transparent bg-clip-text">
             Knowledge Graph Explorer
           </h1>
-          <p className="text-gray-400 mt-2">
+          <p className="text-gray-300 mt-2">
             Analyze and visualize text relationships
           </p>
         </div>
@@ -111,38 +111,46 @@ function App() {
         <div className="flex gap-8 h-[calc(100vh-200px)]">
           <div className="flex-1 min-w-0 space-y-8 overflow-y-auto">
             {/* Input Section */}
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
-                <CardTitle>Text Analysis</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-xl">Text Analysis</CardTitle>
+                <CardDescription className="text-gray-300">
                   Enter text to analyze and select the analysis type
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
                 <Textarea
                   placeholder="Enter text to analyze..."
                   value={text}
                   onChange={handleTextChange}
-                  className="w-full bg-gray-700 border-gray-600 text-white placeholder:text-gray-400"
-                  rows={4}
+                  className="w-full bg-gray-800 border-gray-700 text-gray-100 placeholder:text-gray-400 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400"
+                  rows={6}
                 />
-                <div className="flex flex-col sm:flex-row gap-4 mt-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                   <Select value={analysisType} onValueChange={handleAnalysisTypeChange}>
-                    <SelectTrigger className="w-full sm:w-64 bg-gray-700 border-gray-600 text-white">
+                    <SelectTrigger className="w-full sm:w-64 bg-gray-800 border-gray-700 text-gray-100 hover:bg-gray-700">
                       <SelectValue placeholder="Select analysis type" />
                     </SelectTrigger>
                     <SelectContent className="bg-gray-800 border-gray-700">
-                      <SelectItem value="co-occurrence">Co-occurrence Analysis</SelectItem>
-                      <SelectItem value="semantic">Semantic Analysis</SelectItem>
-                      <SelectItem value="topic">Topic Modeling</SelectItem>
+                      <SelectItem value="co-occurrence" className="hover:bg-gray-700">Co-occurrence Analysis</SelectItem>
+                      <SelectItem value="semantic" className="hover:bg-gray-700">Semantic Analysis</SelectItem>
+                      <SelectItem value="topic" className="hover:bg-gray-700">Topic Modeling</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
                     onClick={handleAnalyze}
                     disabled={isAnalyzing}
-                    className="bg-blue-500 hover:bg-blue-600 text-white"
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-md transition-colors duration-200"
                   >
-                    {isAnalyzing ? 'Analyzing...' : 'Analyze'}
+                    {isAnalyzing ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Analyzing...
+                      </span>
+                    ) : 'Analyze'}
                   </Button>
                 </div>
                 {error && (
@@ -152,15 +160,15 @@ function App() {
             </Card>
 
             {/* Visualization Section */}
-            <Card className="bg-gray-800 border-gray-700">
+            <Card className="bg-gray-900 border-gray-800">
               <CardHeader>
-                <CardTitle>Knowledge Graph</CardTitle>
-                <CardDescription>
+                <CardTitle className="text-xl">Knowledge Graph</CardTitle>
+                <CardDescription className="text-gray-300">
                   Interactive visualization of the text analysis results
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="h-[500px] border rounded-md bg-white">
+                <div className="h-[600px] border border-gray-700 rounded-lg overflow-hidden">
                   {graphData && (
                     <GraphVisualization 
                       data={graphData}
@@ -183,4 +191,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

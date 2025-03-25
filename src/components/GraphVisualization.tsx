@@ -86,7 +86,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, onFilterC
     <div className="w-full space-y-4">
       <div className="flex items-center justify-between">
         <label className="flex items-center space-x-4">
-          <span className="text-gray-700 font-medium">Edge Weight Filter:</span>
+          <span className="text-gray-300 font-medium">Edge Weight Filter:</span>
           <div className="flex items-center gap-2">
             <input
               type="range"
@@ -95,20 +95,20 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, onFilterC
               step="0.05"
               value={minWeight}
               onChange={(e) => handleFilterChange(parseFloat(e.target.value))}
-              className="w-48"
+              className="w-48 accent-indigo-500 bg-gray-700 rounded-lg"
               disabled={isFiltering}
             />
-            <span className="text-gray-600 min-w-[3rem]">{minWeight.toFixed(2)}</span>
+            <span className="text-gray-200 min-w-[3rem]">{minWeight.toFixed(2)}</span>
           </div>
           {isFiltering && (
-            <span className="text-blue-500 text-sm animate-pulse">
+            <span className="text-indigo-400 text-sm animate-pulse">
               Filtering...
             </span>
           )}
         </label>
         <button
           onClick={handleCenterGraph}
-          className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md flex items-center gap-2 text-sm font-medium transition-colors"
+          className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-gray-100 rounded-md flex items-center gap-2 text-sm font-medium transition-colors"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 3L3 21M21 21L3 3M12 12m-7 0a7 7 0 1 0 14 0a7 7 0 1 0-14 0" />
@@ -127,8 +127,8 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, onFilterC
           linkSource="source"
           linkTarget="target"
           linkWidth={link => (link.weight || 0) * 3}
-          linkColor={() => 'rgba(155, 89, 182, 0.2)'}
-          backgroundColor="#ffffff"
+          linkColor={() => 'rgba(129, 140, 248, 0.4)'}
+          backgroundColor="#0f172a"
           nodeCanvasObject={(node, ctx, globalScale) => {
             const { x, y, label } = node;
             if (!x || !y) return;
@@ -156,7 +156,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, onFilterC
             const textWidth = ctx.measureText(label).width;
             const padding = 4 / globalScale;
             
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
             ctx.fillRect(
               x - textWidth / 2 - padding,
               y + size + padding,
@@ -165,7 +165,7 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, onFilterC
             );
 
             // Draw label text
-            ctx.fillStyle = '#2d3748';
+            ctx.fillStyle = '#e2e8f0';
             ctx.fillText(label, x, y + size + fontSize / 2 + padding * 2);
           }}
           cooldownTicks={100}
@@ -177,9 +177,9 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, onFilterC
         />
       </div>
       {data.metrics && (
-        <div className="bg-white p-4 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-2 text-gray-800">Graph Metrics</h3>
-          <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+        <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+          <h3 className="text-lg font-semibold mb-2 text-gray-100">Graph Metrics</h3>
+          <div className="grid grid-cols-2 gap-2 text-sm text-gray-300">
             <div>Nodes: {data.metrics.node_count}</div>
             <div>Density: {data.metrics.density.toFixed(3)}</div>
             <div>Avg. Clustering: {data.metrics.average_clustering.toFixed(3)}</div>
@@ -193,4 +193,4 @@ const GraphVisualization: React.FC<GraphVisualizationProps> = ({ data, onFilterC
   );
 };
 
-export default GraphVisualization; 
+export default GraphVisualization;
